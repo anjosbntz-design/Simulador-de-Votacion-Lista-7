@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LISTA 7 - SISTEMA DE ESCRUTINIO PROVISORIO</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --red-7: #E60000; --dark-blue: #000000; } /* Cambiado a Negro */
+        body { background: #F2F2F2; color: #333; font-family: 'Segoe UI', sans-serif; text-transform: uppercase; }
+        
+        /* IMÁGENES LOCALES */
+        .contenedor-logos { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 25px; }
+        .img-campaña { width: 100%; max-width: 320px; height: auto; object-fit: contain; }
+        .img-header { max-height: 50px; width: auto; margin-right: 15px; }
+
+        /* EFECTO 3D EN TÍTULOS */
+        .titulo-3d { 
+            color: #000 !important; 
+            font-weight: 900; 
+            text-shadow: 1px 1px 0px #ccc, 2px 2px 0px #bbb, 3px 3px 0px #aaa;
+        }
+
+        /* ESTILO LISTA 7 ESPECIAL */
+        .lista-7-style {
+            color: #FFD700 !important; /* Amarillo */
+            font-size: 1.8rem; /* Aumento de tamaño */
+            font-weight: 900;
+            -webkit-text-stroke: 1.5px var(--red-7); /* Borde colorado */
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        /* LOGIN */
+        #pantalla_login { position: fixed; top:0; left:0; width:100%; height:100%; background: #FFF; z-index: 9999; display: flex; align-items: center; justify-content: center; overflow-y: auto; }
+        .login-card { padding: 40px; width: 95%; max-width: 480px; border-radius: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); border-top: 8px solid var(--red-7); text-align: center; background: white; margin: 20px auto; }
+        .form-control-custom { border-radius: 8px; border: 2px solid #CCC; padding: 12px; margin-bottom: 12px; width: 100%; font-weight: bold; }
+        
+        /* MARCA DE AGUA */
+        .marca-autor { font-size: 0.75rem; color: #888; margin-top: 20px; font-weight: bold; letter-spacing: 0.5px; text-align: center; width: 100%; }
+
+        /* HEADER */
+        .header-pro { background: white; border-bottom: 4px solid var(--red-7); padding: 12px 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .titulo-seccion { color: #000; font-weight: 900; border-left: 5px solid var(--red-7); padding-left: 12px; margin-bottom: 15px; font-size: 1rem; letter-spacing: 1px; }
+
+        /* INTERFAZ */
+        .col-scroll { height: 72vh; overflow-y: auto; padding: 15px; border-radius: 10px; background: white; border: 1px solid #DDD; }
+        .btn-cand { background: #FFF; border: 1px solid #DDD; padding: 15px; border-radius: 10px; margin-bottom: 10px; width: 100%; text-align: left; display: flex; align-items: center; font-weight: 800; transition: 0.2s; }
+        .btn-cand:not([disabled]):hover { border-color: var(--red-7); background: #FFF0F0; transform: scale(1.02); }
+        .nro-box { background: var(--red-7); color: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 5px; margin-right: 15px; font-size: 1.3rem; font-weight: 900; }
+
+        .alerta-seguridad { background: #8B0000; color: white; padding: 12px; border-radius: 8px; font-weight: 900; display: none; margin-bottom: 20px; }
+        .progress { height: 15px; border-radius: 5px; background: #EEE; }
+        .progress-bar { background: var(--red-7); }
+    </style>
+</head>
+<body>
+
+<div id="pantalla_login">
+    <div class="login-card">
+        <div class="contenedor-logos">
+            <img src="img/fuerza.png" class="img-campaña" alt="Fuerza y Causa">
+            <img src="img/arnaldo.png" class="img-campaña" alt="Arnaldo Intendente">
+        </div>
+        
+        <h3 class="font-weight-bold mb-4 titulo-3d">SISTEMA DE IDENTIFICACIÓN</h3>
+        <input type="text" id="reg_nombre" class="form-control-custom" placeholder="NOMBRE Y APELLIDO" oninput="this.value = this.value.toUpperCase()">
+        <input type="number" id="reg_ci" class="form-control-custom" placeholder="C.I. (6-8 DÍGITOS)">
+        <input type="number" id="reg_tel" class="form-control-custom" placeholder="TELÉFONO (10 DÍGITOS)">
+        <input type="number" id="reg_seccional" class="form-control-custom" placeholder="SECCIONAL (1-45)">
+        <button id="btn_acceso" class="btn btn-danger btn-block font-weight-bold py-3" onclick="verificarYEntrar()">ACCEDER AL PADRÓN</button>
+        
+        <div class="marca-autor">DESARROLLADO POR ANGEL BENITEZ OCAMPOS</div>
+    </div>
+</div>
+
+<div id="pantalla_voto" style="display:none;">
+    <div class="header-pro d-flex justify-content-between align-items-center sticky-top">
+        <div class="d-flex align-items-center">
+            <img src="img/fuerza.png" class="img-header d-none d-md-block">
+            <h5 class="m-0 font-weight-bold">
+                <span class="lista-7-style">LISTA 7</span> 
+                <span class="text-danger ml-2">| ASUNCIÓN</span>
+            </h5>
+        </div>
+        <div class="d-flex align-items-center">
+            <div class="badge badge-dark p-2 mr-3" id="txt_total" style="font-size: 1.1rem;">TOTAL VOTOS: 0</div>
+            <button class="btn btn-outline-danger font-weight-bold btn-sm" onclick="location.reload()">SALIR</button>
+        </div>
+    </div>
+
+    <div class="container-fluid mt-3">
+        <div id="alerta_ci" class="alerta-seguridad text-center">SISTEMA BLOQUEADO: ESTA CÉDULA YA EMITIÓ SU VOTO</div>
+        
+        <div class="row">
+            <div class="col-lg-5 mb-4">
+                <h6 class="titulo-seccion titulo-3d">PRE-CANDIDATOS</h6>
+                <div id="lista_cand" class="col-scroll shadow-sm"></div>
+            </div>
+
+            <div class="col-lg-7">
+                <h6 class="titulo-seccion titulo-3d">TOP 10 CANDIDATOS</h6>
+                <div class="p-3 border rounded bg-white mb-4" style="height: 280px;">
+                    <canvas id="chartCol"></canvas>
+                </div>
+                <h6 class="titulo-seccion titulo-3d">ESTADO DEL ESCRUTINIO EN TIEMPO REAL</h6>
+                <div id="ranking_real" class="col-scroll shadow-sm" style="height: 35vh;"></div>
+            </div>
+        </div>
+        <div class="marca-autor py-3">DESARROLLADO POR ANGEL BENITEZ OCAMPOS</div>
+    </div>
+</div>
+
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzg-BbR6VM6bMPfJ8NOuu8YDZltKclhZP1s1LLB2IhYg3HPvnU-reYrhbVHmlp3YgXM/exec"; 
+
+    const CANDIDATOS = [
+        {n:1, nom:"CERVANTE LARA"}, {n:2, nom:"ENRIQUE WAGENER"}, {n:3, nom:"ANDRES GUERREÑO"},
+        {n:4, nom:"HERIBERTO CAMPUZANO"}, {n:5, nom:"GUILLERMINA CORONEL"}, {n:6, nom:"CARLOS VIVEROS"},
+        {n:7, nom:"JOSE PLATE"}, {n:8, nom:"JULIO ROLON"}, {n:9, nom:"ELVIRA DUARTE"},
+        {n:10, nom:"RODRIGO PAREDES"}, {n:11, nom:"MELISSA LACASA"}, {n:12, nom:"ELIAS FLEITAS"},
+        {n:13, nom:"JULIO FERNANDEZ"}, {n:14, nom:"CHRISTIAN VEGA"}, {n:15, nom:"VICTOR CHAMORRO"},
+        {n:16, nom:"MIGUEL AVALOS"}, {n:17, nom:"OSCAR ACEVEDO"}, {n:18, nom:"ROBERTO OJEDA"},
+        {n:19, nom:"NORMA GIMENEZ"}, {n:20, nom:"LILIAN BENITEZ"}, {n:21, nom:"LIZ BERNAL"},
+        {n:22, nom:"ARACELI ACOSTA"}, {n:23, nom:"SOL PEREZ"}, {n:24, nom:"RAMON AGÜERO"}
+    ];
+
+    let elector = {};
+    let bloqueado = false;
+    let chart;
+
+    async function verificarYEntrar() {
+        const nom = document.getElementById('reg_nombre').value.trim();
+        const ci = document.getElementById('reg_ci').value.trim();
+        const tel = document.getElementById('reg_tel').value.trim();
+        const sec = document.getElementById('reg_seccional').value.trim();
+
+        if(!nom || ci.length < 6 || ci.length > 8 || tel.length !== 10 || sec < 1 || sec > 45) {
+            alert("DATOS INCORRECTOS");
+            return;
+        }
+
+        document.getElementById('btn_acceso').innerText = "CONECTANDO...";
+        document.getElementById('btn_acceso').disabled = true;
+
+        try {
+            const res = await fetch(`${SCRIPT_URL}?checkCI=${ci}`);
+            const data = await res.json();
+            bloqueado = data.yaVoto;
+            elector = { nombre: nom, ci: ci, tel: tel, seccional: sec };
+            document.getElementById('pantalla_login').style.display = 'none';
+            document.getElementById('pantalla_voto').style.display = 'block';
+            if(bloqueado) document.getElementById('alerta_ci').style.display = 'block';
+            renderCandidatos();
+            actualizarComputo();
+            setInterval(actualizarComputo, 8000);
+        } catch(e) {
+            alert("ERROR DE RED");
+            document.getElementById('btn_acceso').disabled = false;
+        }
+    }
+
+    function renderCandidatos() {
+        const div = document.getElementById('lista_cand');
+        div.innerHTML = "";
+        CANDIDATOS.forEach(c => {
+            div.innerHTML += `
+                <button class="btn-cand" ${bloqueado ? 'disabled' : ''} onclick="registrarVoto(${c.n}, '${c.nom}')">
+                    <span class="nro-box">${c.n}</span>
+                    <span>${c.nom}</span>
+                </button>`;
+        });
+    }
+
+    async function registrarVoto(n, nombre) {
+        if(bloqueado) return;
+        bloqueado = true; 
+        renderCandidatos();
+        try {
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({...elector, nro: n, candidato: nombre})
+            });
+            document.getElementById('alerta_ci').innerText = "✅ VOTO REGISTRADO.";
+            document.getElementById('alerta_ci').style.background = "#006400";
+            document.getElementById('alerta_ci').style.display = 'block';
+            setTimeout(actualizarComputo, 2000);
+        } catch(e) { alert("ERROR"); }
+    }
+
+    async function actualizarComputo() {
+        try {
+            const r = await fetch(SCRIPT_URL);
+            const d = await r.json();
+            const total = d.total || 0;
+            const votos = d.votos || {};
+            document.getElementById('txt_total').innerText = `TOTAL VOTOS: ${total}`;
+            const listaOrdenada = CANDIDATOS.map(c => ({...c, v: votos[c.n] || 0})).sort((a,b) => b.v - a.v);
+            const rankingDiv = document.getElementById('ranking_real');
+            rankingDiv.innerHTML = "";
+            listaOrdenada.forEach((c, i) => {
+                const pct = total > 0 ? Math.round((c.v / total) * 100) : 0;
+                rankingDiv.innerHTML += `<div class="mb-3 p-2 border-bottom"><div class="d-flex justify-content-between font-weight-bold"><span>${i+1}. N°${c.n} - ${c.nom}</span><span class="text-danger">${c.v} VOTOS</span></div><div class="progress mt-1"><div class="progress-bar" style="width:${pct}%"></div></div></div>`;
+            });
+            const top10 = listaOrdenada.slice(0, 10);
+            if(chart) chart.destroy();
+            chart = new Chart(document.getElementById('chartCol'), {
+                type: 'bar',
+                data: { labels: top10.map(t => "N°"+t.n), datasets: [{ data: top10.map(t => t.v), backgroundColor: '#E60000' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        } catch(e) {}
+    }
+</script>
+</body>
+</html>
